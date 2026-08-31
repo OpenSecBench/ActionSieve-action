@@ -70,11 +70,13 @@ runs:
 
     - name: Install actionsieve
       shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
       run: |
-        if [ "${{ inputs.version }}" = "latest" ]; then
+        if [ "$INPUT_VERSION" = "latest" ]; then
           pip install --quiet actionsieve
         else
-          pip install --quiet "actionsieve==${{ inputs.version }}"
+          pip install --quiet "actionsieve==$INPUT_VERSION"
         fi
 
     - name: Run scan
