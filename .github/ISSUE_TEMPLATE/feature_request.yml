@@ -1,0 +1,26 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How should it work?
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: >
+        **Note:** For feature requests about the scanner itself (new
+        detections, platforms, output formats), please file in the
+        [main repo](https://github.com/OpenSecBench/ActionSieve/issues).

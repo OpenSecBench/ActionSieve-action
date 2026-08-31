@@ -1,0 +1,39 @@
+name: Bug Report
+description: Report a bug in the ActionSieve GitHub Action
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened vs. what you expected.
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow snippet
+      description: The relevant part of your workflow YAML.
+      render: yaml
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Action logs
+      description: Relevant output from the action run.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Action version
+      description: The ref you used (e.g. v1, main, a SHA).
+    validations:
+      required: true
+
+  - type: input
+    id: actionsieve-version
+    attributes:
+      label: ActionSieve version
+      description: Value of the `version` input (or "latest").

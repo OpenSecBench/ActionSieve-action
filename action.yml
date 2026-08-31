@@ -1,0 +1,149 @@
+name: ActionSieve
+description: Scan CI/CD pipelines for injection, supply chain, and misconfiguration vulnerabilities
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  path:
+    description: Path to scan (defaults to repo root)
+    required: false
+    default: "."
+  version:
+    description: ActionSieve version to install (e.g. "0.1.0", or "latest")
+    required: false
+    default: latest
+  format:
+    description: Output format (json, yaml, sarif, markdown, ocsf)
+    required: false
+    default: sarif
+  platform:
+    description: Force platform (auto-detected by default)
+    required: false
+  profile:
+    description: Environment profile (preset name or path)
+    required: false
+  patterns:
+    description: Path to pattern catalog (directory or file)
+    required: false
+  fail-on:
+    description: Fail if findings at this severity or above (info, low, medium, high, critical)
+    required: false
+  show-suppressed:
+    description: Include profile-suppressed findings in output
+    required: false
+    default: "false"
+  online:
+    description: Enable online checks (SHA pin verification)
+    required: false
+    default: "false"
+  token:
+    description: GitHub token for online checks
+    required: false
+    default: ${{ github.token }}
+  upload-sarif:
+    description: Upload SARIF results to GitHub Code Scanning
+    required: false
+    default: "true"
+  python-version:
+    description: Python version to use
+    required: false
+    default: "3.12"
+  extra-args:
+    description: Additional arguments to pass to actionsieve scan
+    required: false
+
+outputs:
+  findings-count:
+    description: Number of findings
+    value: ${{ steps.scan.outputs.findings-count }}
+  exit-code:
+    description: Scanner exit code
+    value: ${{ steps.scan.outputs.exit-code }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install actionsieve
+      shell: bash
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          pip install --quiet actionsieve
+        else
+          pip install --quiet "actionsieve==${{ inputs.version }}"
+        fi
+
+    - name: Run scan
+      id: scan
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_PLATFORM: ${{ inputs.platform }}
+        INPUT_PROFILE: ${{ inputs.profile }}
+        INPUT_PATTERNS: ${{ inputs.patterns }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_SHOW_SUPPRESSED: ${{ inputs.show-suppressed }}
+        INPUT_ONLINE: ${{ inputs.online }}
+        INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_EXTRA_ARGS: ${{ inputs.extra-args }}
+      run: |
+        args=("scan")
+        args+=("--format" "$INPUT_FORMAT")
+
+        if [ -n "$INPUT_PLATFORM" ]; then
+          args+=("--platform" "$INPUT_PLATFORM")
+        fi
+        if [ -n "$INPUT_PROFILE" ]; then
+          args+=("--profile" "$INPUT_PROFILE")
+        fi
+        if [ -n "$INPUT_PATTERNS" ]; then
+          args+=("--patterns" "$INPUT_PATTERNS")
+        fi
+        if [ -n "$INPUT_FAIL_ON" ]; then
+          args+=("--fail-on" "$INPUT_FAIL_ON")
+        fi
+        if [ "$INPUT_SHOW_SUPPRESSED" = "true" ]; then
+          args+=("--show-suppressed")
+        fi
+        if [ "$INPUT_ONLINE" = "true" ]; then
+          args+=("--online" "--token" "$INPUT_TOKEN")
+        fi
+
+        if [ "$INPUT_FORMAT" = "sarif" ]; then
+          args+=("--output" "${{ runner.temp }}/actionsieve.sarif")
+        fi
+
+        if [ -n "$INPUT_EXTRA_ARGS" ]; then
+          read -ra extra <<< "$INPUT_EXTRA_ARGS"
+          args+=("${extra[@]}")
+        fi
+
+        args+=("$INPUT_PATH")
+
+        set +e
+        actionsieve "${args[@]}"
+        exit_code=$?
+        set -e
+
+        echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
+
+        if [ "$INPUT_FORMAT" = "sarif" ] && [ -f "${{ runner.temp }}/actionsieve.sarif" ]; then
+          count=$(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['runs'][0]['results']))" "${{ runner.temp }}/actionsieve.sarif")
+        else
+          count="unknown"
+        fi
+        echo "findings-count=$count" >> "$GITHUB_OUTPUT"
+
+        exit $exit_code
+
+    - name: Upload SARIF
+      if: inputs.upload-sarif == 'true' && inputs.format == 'sarif' && always()
+      uses: github/codeql-action/upload-sarif@181d5eefc20863364f96762470ba6f862bdef56b # v3.29.2
+      with:
+        sarif_file: ${{ runner.temp }}/actionsieve.sarif
+        category: actionsieve
