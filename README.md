@@ -89,7 +89,7 @@ ActionSieve requires a pattern catalog to detect vulnerabilities. Patterns
 are YAML files that define what to look for. You can:
 
 - Use the community patterns from
-  [actionsieve-corpus](https://github.com/OpenSecBench/actionsieve-corpus)
+  [actionsieve-corpus](https://github.com/OpenSecBench/ActionSieve-corpus)
 - Write your own patterns for internal rules
 - Combine both
 
