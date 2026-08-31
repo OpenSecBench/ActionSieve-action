@@ -42,34 +42,43 @@ steps:
     displayName: Install actionsieve
 
   - script: |
-      args="scan --format ${{ parameters.format }}"
+      args=("scan" "--format" "$ACTIONSIEVE_FORMAT")
 
-      if [ -n "${{ parameters.platform }}" ]; then
-        args="$args --platform ${{ parameters.platform }}"
+      if [ -n "$ACTIONSIEVE_PLATFORM" ]; then
+        args+=("--platform" "$ACTIONSIEVE_PLATFORM")
       fi
-      if [ -n "${{ parameters.profile }}" ]; then
-        args="$args --profile ${{ parameters.profile }}"
+      if [ -n "$ACTIONSIEVE_PROFILE" ]; then
+        args+=("--profile" "$ACTIONSIEVE_PROFILE")
       fi
-      if [ -n "${{ parameters.patterns }}" ]; then
-        args="$args --patterns ${{ parameters.patterns }}"
+      if [ -n "$ACTIONSIEVE_PATTERNS" ]; then
+        args+=("--patterns" "$ACTIONSIEVE_PATTERNS")
       fi
-      if [ -n "${{ parameters.failOn }}" ]; then
-        args="$args --fail-on ${{ parameters.failOn }}"
-      fi
-
-      if [ "${{ parameters.format }}" = "sarif" ]; then
-        args="$args --output $(Build.ArtifactStagingDirectory)/actionsieve.sarif"
-      elif [ "${{ parameters.format }}" = "json" ]; then
-        args="$args --output $(Build.ArtifactStagingDirectory)/actionsieve.json"
+      if [ -n "$ACTIONSIEVE_FAIL_ON" ]; then
+        args+=("--fail-on" "$ACTIONSIEVE_FAIL_ON")
       fi
 
-      if [ -n "${{ parameters.extraArgs }}" ]; then
-        args="$args ${{ parameters.extraArgs }}"
+      if [ "$ACTIONSIEVE_FORMAT" = "sarif" ]; then
+        args+=("--output" "$(Build.ArtifactStagingDirectory)/actionsieve.sarif")
+      elif [ "$ACTIONSIEVE_FORMAT" = "json" ]; then
+        args+=("--output" "$(Build.ArtifactStagingDirectory)/actionsieve.json")
       fi
 
-      actionsieve $args "${{ parameters.path }}"
+      if [ -n "$ACTIONSIEVE_EXTRA_ARGS" ]; then
+        read -ra extra <<< "$ACTIONSIEVE_EXTRA_ARGS"
+        args+=("${extra[@]}")
+      fi
+
+      actionsieve "${args[@]}" "$ACTIONSIEVE_PATH"
     displayName: Run actionsieve scan
     continueOnError: true
+    env:
+      ACTIONSIEVE_PATH: ${{ parameters.path }}
+      ACTIONSIEVE_FORMAT: ${{ parameters.format }}
+      ACTIONSIEVE_PLATFORM: ${{ parameters.platform }}
+      ACTIONSIEVE_PROFILE: ${{ parameters.profile }}
+      ACTIONSIEVE_PATTERNS: ${{ parameters.patterns }}
+      ACTIONSIEVE_FAIL_ON: ${{ parameters.failOn }}
+      ACTIONSIEVE_EXTRA_ARGS: ${{ parameters.extraArgs }}
 
   - task: PublishBuildArtifacts@1
     condition: always()

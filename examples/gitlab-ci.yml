@@ -23,30 +23,31 @@ actionsieve:
     - pip install --quiet actionsieve
   script:
     - |
-      args="scan --format $ACTIONSIEVE_FORMAT"
+      args=("scan" "--format" "$ACTIONSIEVE_FORMAT")
 
       if [ -n "$ACTIONSIEVE_PLATFORM" ]; then
-        args="$args --platform $ACTIONSIEVE_PLATFORM"
+        args+=("--platform" "$ACTIONSIEVE_PLATFORM")
       fi
       if [ -n "$ACTIONSIEVE_PROFILE" ]; then
-        args="$args --profile $ACTIONSIEVE_PROFILE"
+        args+=("--profile" "$ACTIONSIEVE_PROFILE")
       fi
       if [ -n "$ACTIONSIEVE_PATTERNS" ]; then
-        args="$args --patterns $ACTIONSIEVE_PATTERNS"
+        args+=("--patterns" "$ACTIONSIEVE_PATTERNS")
       fi
       if [ -n "$ACTIONSIEVE_FAIL_ON" ]; then
-        args="$args --fail-on $ACTIONSIEVE_FAIL_ON"
+        args+=("--fail-on" "$ACTIONSIEVE_FAIL_ON")
       fi
 
       if [ "$ACTIONSIEVE_FORMAT" = "json" ]; then
-        args="$args --output actionsieve-results.json"
+        args+=("--output" "actionsieve-results.json")
       fi
 
       if [ -n "$ACTIONSIEVE_EXTRA_ARGS" ]; then
-        args="$args $ACTIONSIEVE_EXTRA_ARGS"
+        read -ra extra <<< "$ACTIONSIEVE_EXTRA_ARGS"
+        args+=("${extra[@]}")
       fi
 
-      actionsieve $args "$ACTIONSIEVE_PATH"
+      actionsieve "${args[@]}" "$ACTIONSIEVE_PATH"
   artifacts:
     when: always
     paths:
